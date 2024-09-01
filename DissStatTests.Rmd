@@ -1,0 +1,62 @@
+---
+title: "Diss"
+output: html_document
+date: "2024-09-01"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Perform Kruskal-Wallis test
+present_test <- kruskal.test(time_to_adoption ~ OutdoorCount, data = data)
+print(present_test)
+
+
+# Calculate counts, average, and median for Present 
+summary_stats <- aggregate(time_to_adoption ~ OutdoorCount, data = data, 
+                           FUN = function(x) c(
+                             n = length(x), 
+                             mean = mean(x, na.rm = TRUE), 
+                             median = median(x, na.rm = TRUE)))
+
+# Convert the result to a more readable format
+summary_stats <- do.call(data.frame, summary_stats)
+names(summary_stats)[2:4] <- c("Count", "AverageTimeToAdoption", "MedianTimeToAdoption")
+print(summary_stats)
+```
+
+```{r}
+# Load necessary libraries
+data$IndoorCount <- as.factor(data$IndoorCount)  # Ensure a factor for grouping
+
+# Kruskal-Wallis test for Count
+count_test <- kruskal.test(time_to_adoption ~ IndoorCount, data = data)
+print(count_test)
+
+# If significant, perform pairwise comparisons
+if (count_test$p.value < 0.06) {
+  pairwise_count <- pairwise.wilcox.test(data$time_to_adoption, data$IndoorCount, p.adjust.method = "bonferroni")
+  print(pairwise_count)
+  
+  # Convert pairwise count results to data frame and save as CSV
+  pairwise_count_df <- as.data.frame(pairwise_count$p.value)
+  write.csv(pairwise_count_df, "pairwise_count.csv", row.names = TRUE)
+}
+
+# Calculate counts, average, and median for each Count level
+summary_stats <- aggregate(time_to_adoption ~ IndoorCount, data = data, 
+                           FUN = function(x) c(
+                             n = length(x), 
+                             mean = mean(x, na.rm = TRUE), 
+                             median = median(x, na.rm = TRUE)))
+
+# Convert the result to a more readable format
+summary_stats <- do.call(data.frame, summary_stats)
+names(summary_stats)[2:4] <- c("Count", "AverageTimeToAdoption", "MedianTimeToAdoption")
+print(summary_stats)
+
+# Save summary_stats as CSV
+write.csv(summary_stats, "summary_stats.csv", row.names = FALSE)
+```
